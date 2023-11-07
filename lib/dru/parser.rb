@@ -24,16 +24,15 @@ module Dru
         include Dru::Stackable
       end
 
-      def squashed_schemas
-        @squashed_schemas ||= Hash.new
-      end
-
       def squash_stack(stack)
         if stack.size == 0
           return Hash.new
         else
           tok = stack.shift
-          if tok.match?(/schema/i) || tok.match?(/object/i)
+          if tok.kind_of?(Array) || tok.match?(/schema/i) || tok.match?(/object/i)
+            if tok.kind_of?(Array)
+              tok = tok[0]
+            end
             {tok.to_s => squash_stack(stack)}
           elsif ZOD_SYNTAX[:_SCHEMA_BLOCK_].any? { |el| tok.match?(/"#{el}/i) }
             [tok.to_s => squash_stack(stack)]
@@ -48,6 +47,7 @@ module Dru
       def parse_str str
         conversion_stack = ZodTokenStack.new
         data = ZodTokenizer.tokenize_str(str: str)
+        squashed_schemas = {}
         result = {}
         data.tokens.each_with_index do |token, idx|
           peek_previous_token_idx = (idx - 1 unless idx - 1 < 0) || 0
@@ -90,18 +90,20 @@ module Dru
             next
           end
 
-          if data.tokens == ":" # Attributes can refer to schemas that were previously defined
+          if token == ":" # Attributes can refer to schemas that were previously defined
             attr_value_idx = peek_next_token_idx
             attr_value = data.tokens[attr_value_idx]
+
             if attr_value.match?(/schema/i) && squashed_schemas[attr_value]
               # Push attribute name
-              conversion_stack.push attr_value
+              conversion_stack.push([data.tokens[peek_previous_token_idx]])
               squashed_schemas[attr_value].each do |k,v|
                 conversion_stack.push k.to_s
               end
+            else
+              conversion_stack.push(data.tokens[peek_previous_token_idx])
             end
 
-            conversion_stack.push(data.tokens[peek_previous_token_idx])
             data.tokens[attr_value_idx] = ""
             next
           end
@@ -116,7 +118,7 @@ module Dru
             end
 
             # After we squash the stack we lose the current parent unless we push it for processing now...
-            conversion_stack.push(token) 
+            conversion_stack.push(token)
           end
         end
 

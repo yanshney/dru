@@ -4,10 +4,11 @@ require 'minitest'
 require 'test_helper'
 
 # Include everything in lib directory
-require File.join(File.expand_path("/home/sf/Development/dru/"), "lib", "dru.rb")
-Dir.glob(File.join(File.expand_path("/home/sf/Development/dru/"), "lib", "dru", "utils", "*.rb")).each do |file|
-  require "#{file}"
-end
+
+#require File.join(File.expand_path("/home/sf/Development/dru/"), "lib", "dru.rb")
+#Dir.glob(File.join(File.expand_path("/home/sf/Development/dru/"), "lib", "dru", "utils", "*.rb")).each do |file|
+  #require "#{file}"
+#end
 
 class Stack
   include Dru::Stackable
